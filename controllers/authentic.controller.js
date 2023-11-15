@@ -1,29 +1,54 @@
-const User = require("../models/blog.model");
+const bcrypt = require("bcrypt");
+const User = require("../models/user.model");
+const jwtToken = require("../utils/JWT");
+
 const signup = async (req, res) => {
   // console.log(req.body)
   const { username, email, password } = req.body;
+
   const singleUser = await User.findOne({ where: { email: email } });
-  if (singleUser) {
-    res.status(400).send("user already exist");
-  }
-  const receivedNewuser = req.body;
-  const createdUser = await User.create(receivedNewuser);
-  //   console.log("first",createdUser)
-  res.status(201).send(createdUser);
+
+  if (singleUser) return res.status(400).send("user already exist");
+
+  const salt = await bcrypt.genSalt();
+  const hashPassword = await bcrypt.hash(password, salt);
+
+  const newUser = await User.create({
+    username,
+    email,
+    password: hashPassword,
+  });
+  const accessToken = jwtToken(username);
+    res.cookie("accessTokenName", accessToken, {
+      maxAge: 60*60*1000,
+    })
+  return res.status(200).send(newUser);
 };
 
 const login = async (req, res) => {
-  const { email, password } = req.body;
+  const {username, password } = req.body;
   const user = await User.findOne({
     where: {
-      email: email,
-      password: password,
+      username: username
     },
   });
-  if (!user) {
-    return res.status(400).send("please signup first");
+
+  if (!user) return res.status(404).send("wrong username");
+
+  const isValid = await bcrypt.compare( password,user.password);
+
+  if (!isValid) {
+   return res.send("wrong password");
+  }else{
+
+    const accessToken = jwtToken(user.username);
+    res.cookie("accessTokenName", accessToken, {
+      maxAge: 60*60*1000,
+    })
+    return res.status(200).send("Login Success!");
   }
-  return res.status(200).send(user);
+
+  
 };
 
 module.exports = {

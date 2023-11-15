@@ -8,7 +8,7 @@ const sequelize = new Sequelize("blog_server", "root", "root", {
 sequelize
   .sync({ force: false })
   .then(() => {
-    console.log("Table sync successfully.");
+    console.log("Sync Success!");
   })
   .catch(() => {
     console.log("Not synced.");
