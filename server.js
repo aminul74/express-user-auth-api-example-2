@@ -10,5 +10,5 @@ app.post("/", (req, res) => {
 app.use("/api/v1/auth", authenticRoutes)
 
 app.listen(3000, () => {
-  console.log("server running on 3000 port");
+  console.log("server running onnn 3000 port");
 });
