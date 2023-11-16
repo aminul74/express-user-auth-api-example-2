@@ -1,57 +1,34 @@
-const bcrypt = require("bcrypt");
-const User = require("../models/user.model");
-const jwtToken = require("../utils/JWT");
+const signupFromService = require("../services/user-services/signup.service");
+const loginFromService = require("../services/user-services/login.service");
 
-const signup = async (req, res) => {
-  // console.log(req.body)
-  const { username, email, password } = req.body;
+const signUp = async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    
+    const token = await signupFromService(username, email, password );
+    if(!token) return res.send("user already exists");
 
-  const singleUser = await User.findOne({ where: { email: email } });
-
-  if (singleUser) return res.status(400).send("user already exist");
-
-  const salt = await bcrypt.genSalt();
-  const hashPassword = await bcrypt.hash(password, salt);
-
-  const newUser = await User.create({
-    username,
-    email,
-    password: hashPassword,
-  });
-  const accessToken = jwtToken(username);
-    res.cookie("accessTokenName", accessToken, {
-      maxAge: 60*60*1000,
-    })
-  return res.status(200).send(newUser);
-};
-
-const login = async (req, res) => {
-  const {username, password } = req.body;
-  const user = await User.findOne({
-    where: {
-      username: username
-    },
-  });
-
-  if (!user) return res.status(404).send("wrong username");
-
-  const isValid = await bcrypt.compare( password,user.password);
-
-  if (!isValid) {
-   return res.send("wrong password");
-  }else{
-
-    const accessToken = jwtToken(user.username);
-    res.cookie("accessTokenName", accessToken, {
-      maxAge: 60*60*1000,
-    })
-    return res.status(200).send("Login Success!");
+    res.cookie("access-token", token, { maxAge: 30 * 24 * 60 * 60 });
+    return res.status(201).send("Signup Success!");
+  } catch (error) {
+    return res.status(400).send("Internal Server Error.");
   }
-
-  
 };
 
-module.exports = {
-  signup,
-  login,
+const logIn = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    const token = await loginFromService(username, password );
+
+    if(!token) return res.send("Username or Password incorrect");
+
+    res.cookie("access-token", token, { maxAge: 30 * 24 * 60 * 60 });
+    return res.status(200).send("Login Success!");
+  } catch (error) {
+    return res.status(400).send("Internal server error.");
+  }
 };
+
+
+module.exports = { signUp,logIn };
